@@ -1,0 +1,30 @@
+version: '3.9'
+services:
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    user: root
+    privileged: true
+    ports:
+      - "8080:8080"
+    volumes:
+      - "./jenkins_configuration:/var/jenkins_home"
+      - "./executors.groovy:/home/tree/Code/jenkins-compose/executors.groovy"
+
+  agent:
+    image: alpine:3.17.0
+    container_name: agent
+    command: >
+      sh -c "apk add --no-cache bash coreutils curl docker git maven openjdk11 openrc
+      && rc-update add docker boot
+      && rc-status
+      && touch /run/openrc/softlevel
+      && service docker start
+      && curl -sO http://jenkins:8080/jnlpJars/agent.jar
+      && java -jar agent.jar -jnlpUrl http://jenkins:8080/computer/agent/jenkins-agent.jnlp -secret ${MY_SECRET_KEY} -workDir '/home/jenkins'"
+    tty: true
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    environment:
+      MY_SECRET_KEY: "${MY_SECRET_KEY}"
